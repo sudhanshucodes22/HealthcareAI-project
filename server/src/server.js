@@ -13,6 +13,7 @@ import mentalRoutes from './routes/mental.js';
 import medicineRoutes from './routes/medicine.js';
 import emergencyRoutes from './routes/emergency.js';
 import insuranceRoutes from './routes/insurance.js';
+import appointmentsRoutes from './routes/appointment.js';
 import configRoutes from './routes/config.js';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/mental', mentalRoutes);
 app.use('/api/medicine', medicineRoutes);
 app.use('/api/emergency', emergencyRoutes);
 app.use('/api/insurance', insuranceRoutes);
+app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/config', configRoutes);
 
 // Error handler (must be last)

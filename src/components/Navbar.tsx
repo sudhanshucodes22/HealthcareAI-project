@@ -25,6 +25,7 @@ export default function Navbar() {
     { name: 'Medicine Reminder', path: '/medicine-reminder' },
     { name: 'Emergency Locator', path: '/emergency-locator' },
     { name: 'Health Insurance', path: '/health-insurance' },
+    { name: 'Online Appointments', path: '/online-appointments' },
   ];
 
   return (

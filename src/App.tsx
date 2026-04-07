@@ -10,6 +10,7 @@ import EmergencyLocator from './pages/EmergencyLocator';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import HealthInsurance from './pages/HealthInsurance';
+import OnlineAppointments from './pages/OnlineAppointments';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/health-insurance" element={<HealthInsurance />} />
+            <Route path="/online-appointments" element={<OnlineAppointments />} />
           </Routes>
         </div>
       </AuthProvider>

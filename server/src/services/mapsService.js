@@ -1,6 +1,25 @@
 import axios from 'axios';
 import config from '../config/env.js';
 
+const SPECIALTIES_POOL = [
+    'Cardiology (Heart)',
+    'Orthopedics (Back & Bones)',
+    'Neurology (Brain)',
+    'Ophthalmology (Eye)',
+    'Dermatology (Skin)',
+    'Gastroenterology (Stomach)',
+    'Pediatrics (Kids)',
+    'General Medicine'
+];
+
+const DOCTORS_POOL = [
+    { name: 'Dr. Rajesh Sharma', time: '10:00 AM - 04:00 PM' },
+    { name: 'Dr. Priya Mehta', time: '09:00 AM - 01:00 PM' },
+    { name: 'Dr. Amit Verma', time: '02:00 PM - 08:00 PM' },
+    { name: 'Dr. Sneha Gupta', time: '11:00 AM - 05:00 PM' },
+    { name: 'Dr. Vikram Singh', time: '08:00 AM - 12:00 PM' }
+];
+
 export const findNearbyHospitals = async (latitude, longitude, radius = 5000) => {
     try {
         const query = `
@@ -36,7 +55,9 @@ export const findNearbyHospitals = async (latitude, longitude, radius = 5000) =>
                         isOpen: true,
                         emergencyServices: el.tags.emergency === 'yes' || type === 'hospital',
                         phone: el.tags.phone || 'N/A',
-                        distance: 'Nearby'
+                        distance: 'Nearby',
+                        specialties: SPECIALTIES_POOL.slice(0, 2 + Math.floor(Math.random() * 3)),
+                        doctors: DOCTORS_POOL.slice(0, 2 + Math.floor(Math.random() * 2))
                     });
                 }
             });
@@ -56,7 +77,12 @@ export const findNearbyHospitals = async (latitude, longitude, radius = 5000) =>
                     rating: 4.5,
                     location: { lat: latitude + 0.005, lng: longitude + 0.005 },
                     isOpen: true,
-                    emergencyServices: true
+                    emergencyServices: true,
+                    specialties: ['Cardiology (Heart)', 'General Medicine', 'Neurology (Brain)'],
+                    doctors: [
+                        { name: 'Dr. Rajesh Sharma', time: '10:00 AM - 04:00 PM' },
+                        { name: 'Dr. Priya Mehta', time: '09:00 AM - 01:00 PM' }
+                    ]
                 },
                 {
                     id: 'mock-2',
@@ -68,7 +94,12 @@ export const findNearbyHospitals = async (latitude, longitude, radius = 5000) =>
                     rating: 4.3,
                     location: { lat: latitude - 0.008, lng: longitude + 0.003 },
                     isOpen: true,
-                    emergencyServices: true
+                    emergencyServices: true,
+                    specialties: ['Emergency Medicine', 'Orthopedics (Back & Bones)', 'Trauma Care'],
+                    doctors: [
+                        { name: 'Dr. Vikram Singh', time: '08:00 AM - 12:00 PM' },
+                        { name: 'Dr. Amit Verma', time: '02:00 PM - 08:00 PM' }
+                    ]
                 },
                 {
                     id: 'mock-3',
@@ -80,7 +111,12 @@ export const findNearbyHospitals = async (latitude, longitude, radius = 5000) =>
                     rating: 4.7,
                     location: { lat: latitude + 0.002, lng: longitude - 0.01 },
                     isOpen: true,
-                    emergencyServices: false
+                    emergencyServices: false,
+                    specialties: ['Pediatrics (Kids)', 'Ophthalmology (Eye)', 'Dermatology (Skin)', 'General Medicine'],
+                    doctors: [
+                        { name: 'Dr. Sneha Gupta', time: '11:00 AM - 05:00 PM' },
+                        { name: 'Dr. Amit Verma', time: '02:00 PM - 08:00 PM' }
+                    ]
                 },
                 {
                     id: 'mock-4',
@@ -92,7 +128,9 @@ export const findNearbyHospitals = async (latitude, longitude, radius = 5000) =>
                     rating: 4.9,
                     location: { lat: latitude - 0.004, lng: longitude - 0.006 },
                     isOpen: true,
-                    emergencyServices: true
+                    emergencyServices: true,
+                    specialties: ['Emergency', 'Ambulance', 'Trauma Care'],
+                    doctors: [{ name: 'On-Call Lead', time: '24/7' }]
                 }
             ];
         }

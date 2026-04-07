@@ -5,6 +5,7 @@ import BloodDonor from './BloodDonor.js';
 import ChatHistory from './ChatHistory.js';
 import Medication from './Medication.js';
 import Insurance from './Insurance.js';
+import Appointment from './Appointment.js';
 
 // Define associations
 User.hasMany(HealthRecord, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -21,6 +22,9 @@ Medication.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(Insurance, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Insurance.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Appointment, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Appointment.belongsTo(User, { foreignKey: 'userId' });
 
 // Sync database
 export const syncDatabase = async () => {
@@ -40,4 +44,5 @@ export {
     ChatHistory,
     Medication,
     Insurance,
+    Appointment,
 };
