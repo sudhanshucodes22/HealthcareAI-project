@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { decodeReport } from '../controllers/reportDecoderController.js';
+import { decodeReport, analyzeSkinImage } from '../controllers/reportDecoderController.js';
 
 const router = express.Router();
 
@@ -22,5 +22,8 @@ const upload = multer({
 
 // POST /api/decode-report
 router.post('/decode-report', upload.single('report'), decodeReport);
+
+// POST /api/analyze-skin
+router.post('/analyze-skin', upload.single('image'), analyzeSkinImage);
 
 export default router;

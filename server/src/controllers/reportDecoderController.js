@@ -1,4 +1,4 @@
-import { decodeMedicalReport } from '../services/geminiService.js';
+import { decodeMedicalReport, analyzeSkin } from '../services/geminiService.js';
 import fs from 'fs';
 
 export const decodeReport = async (req, res) => {
@@ -45,3 +45,38 @@ export const decodeReport = async (req, res) => {
         });
     }
 };
+
+export const analyzeSkinImage = async (req, res) => {
+    try {
+        console.log('🖼️ Received skin analysis request...');
+        if (!req.file) {
+            console.error('❌ No file received in request.');
+            return res.status(400).json({ error: 'No image uploaded or file too large.' });
+        }
+
+        console.log(`📂 Processing skin image: ${req.file.originalname} (${req.file.mimetype})`);
+        const { path, mimetype } = req.file;
+
+        // Process using Gemini or fallback
+        const result = await analyzeSkin(path, mimetype, req.file.originalname);
+        console.log('✅ Skin analysis complete.');
+
+        // Clean up temp file
+        if (fs.existsSync(path)) {
+            fs.unlinkSync(path);
+            console.log('🧹 Temp file cleaned up.');
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Error processing skin analysis request:', error);
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({
+            error: 'AI Analysis Error',
+            details: error.message,
+        });
+    }
+};
+

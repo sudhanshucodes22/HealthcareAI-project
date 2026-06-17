@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, AlertCircle, FileText, Activity, ListChecks, Upload, CheckCircle2, Sparkles, Loader2, Activity as ActivityIcon } from 'lucide-react';
+import { Send, Bot, User, AlertCircle, FileText, Activity, ListChecks, Upload, CheckCircle2, Sparkles, Loader2, Camera, ShieldAlert, MapPin, Activity as ActivityIcon } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   role: 'bot' | 'user';
@@ -10,7 +11,8 @@ interface Message {
 }
 
 export default function DiseasePredictor() {
-  const [activeTab, setActiveTab] = useState<'symptoms' | 'decoder'>('symptoms');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'symptoms' | 'decoder' | 'skin'>('symptoms');
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
@@ -27,6 +29,14 @@ export default function DiseasePredictor() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dermal Scan / Skin Analyzer States
+  const [selectedSkinFile, setSelectedSkinFile] = useState<File | null>(null);
+  const [isSkinScanning, setIsSkinScanning] = useState(false);
+  const [skinScanResult, setSkinScanResult] = useState<any>(null);
+  const [skinDragActive, setSkinDragActive] = useState(false);
+  const [skinError, setSkinError] = useState<string | null>(null);
+  const skinFileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,6 +155,64 @@ export default function DiseasePredictor() {
     }
   };
 
+  // Skin Analyzer Handlers
+  const handleSkinDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setSkinDragActive(true);
+    } else if (e.type === "dragleave") {
+      setSkinDragActive(false);
+    }
+  };
+
+  const handleSkinDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSkinDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setSelectedSkinFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const startSkinScan = async () => {
+    if (!selectedSkinFile) return;
+
+    setIsSkinScanning(true);
+    setSkinError(null);
+
+    const formData = new FormData();
+    formData.append('image', selectedSkinFile);
+
+    try {
+      const response = await api.post('/report-decoder/analyze-skin', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setSkinScanResult(response.data);
+    } catch (err: any) {
+      console.error('Error scanning skin image:', err);
+      const errorData = err.response?.data;
+      const displayError = errorData?.error || 'Failed to analyze the skin image. Please try again.';
+      setSkinError(displayError);
+      setSelectedSkinFile(null);
+    } finally {
+      setIsSkinScanning(false);
+    }
+  };
+
+  const handleSkinFileClick = () => {
+    skinFileInputRef.current?.click();
+  };
+
+  const onSkinFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedSkinFile(e.target.files[0]);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden pt-20 pb-12 px-4 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-950">
       {/* Decorative Orbs */}
@@ -208,6 +276,18 @@ export default function DiseasePredictor() {
                 <span>Report Decoder</span>
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('skin')}
+              className={`px-8 py-3 rounded-full font-semibold transition-all duration-300 group relative overflow-hidden ${activeTab === 'skin'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-600/50'
+                : 'text-gray-400 hover:text-blue-400'
+                }`}
+            >
+              <div className="flex items-center space-x-2 relative z-10">
+                <Camera className="w-5 h-5" />
+                <span>Dermal Scan</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -218,7 +298,7 @@ export default function DiseasePredictor() {
           </div>
         </div>
 
-        {activeTab === 'symptoms' ? (
+        {activeTab === 'symptoms' && (
           <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
             {/* Chat History Container */}
             <div className="glass-effect rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-[500px] border border-white/5 bg-slate-900/40 backdrop-blur-xl">
@@ -284,7 +364,9 @@ export default function DiseasePredictor() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'decoder' && (
           <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
             {!scanResult && !isScanning && (
               <div className="glass-effect rounded-3xl shadow-2xl p-12 border border-blue-500/30 text-center">
@@ -437,6 +519,185 @@ export default function DiseasePredictor() {
                           {i + 1}
                         </div>
                         <p className="text-white font-medium leading-relaxed">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'skin' && (
+          <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+            {!skinScanResult && !isSkinScanning && (
+              <div className="glass-effect rounded-3xl shadow-2xl p-12 border border-blue-500/30 text-center">
+                <div
+                  onDragEnter={handleSkinDrag}
+                  onDragOver={handleSkinDrag}
+                  onDragLeave={handleSkinDrag}
+                  onDrop={handleSkinDrop}
+                  className={`group h-[350px] rounded-[2rem] border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center space-y-6 ${skinDragActive ? 'border-blue-400 bg-blue-400/10 scale-[0.98]' : 'border-white/10 hover:border-blue-500/50 hover:bg-white/5'}`}
+                >
+                  <div className={`w-24 h-24 rounded-2xl bg-blue-500/10 flex items-center justify-center transition-all duration-500 ${selectedSkinFile ? 'bg-emerald-500/10' : ''}`}>
+                    {selectedSkinFile ? (
+                      <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+                    ) : (
+                      <Camera className="w-12 h-12 text-blue-400 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {selectedSkinFile ? 'Skin Image Locked' : 'Secure Dermal Image Upload'}
+                    </h3>
+                    <p className="text-gray-400">
+                      {selectedSkinFile ? selectedSkinFile.name : 'JPG, JPEG, or PNG (Max 5MB)'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center space-y-4">
+                    <input
+                      type="file"
+                      ref={skinFileInputRef}
+                      onChange={onSkinFileChange}
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png"
+                    />
+                    {!selectedSkinFile ? (
+                      <button
+                        onClick={handleSkinFileClick}
+                        className="px-10 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold border border-white/10 transition-all flex items-center space-x-3"
+                      >
+                        <Camera className="w-5 h-5 text-blue-400" />
+                        <span>Select Skin Image</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={startSkinScan}
+                        className="px-16 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-600/40 hover:shadow-2xl transition-all flex items-center space-x-3 group/btn"
+                      >
+                        <ActivityIcon className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" />
+                        <span>Analyze Skin Pattern</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {skinError && (
+                  <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center space-x-3 animate-shake max-w-md mx-auto relative z-20">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <p className="text-sm font-medium">{skinError}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isSkinScanning && (
+              <div className="h-[400px] rounded-[2.5rem] glass-effect border border-blue-500/30 flex flex-col items-center justify-center overflow-hidden relative shadow-2xl mx-auto max-w-4xl">
+                <div className="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-blue-400 to-transparent top-0 animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_20px_blue]"></div>
+                <div className="relative mb-8">
+                  <div className="absolute -inset-4 bg-blue-500/20 rounded-full blur-2xl animate-pulse"></div>
+                  <Loader2 className="w-16 h-16 text-blue-400 animate-spin relative z-10" />
+                </div>
+                <h3 className="text-2xl font-black text-white mb-2 tracking-widest uppercase">Analyzing Skin Pattern</h3>
+                <p className="text-blue-400/80 font-mono text-xs animate-pulse">Running Dermal Visual Network...</p>
+              </div>
+            )}
+
+            {skinScanResult && (
+              <div className="space-y-8 animate-slide-up">
+                <div className="grid lg:grid-cols-3 gap-8">
+                  {/* Disclaimer & Summary */}
+                  <div className="lg:col-span-1 rounded-3xl glass-effect border border-white/10 p-8 flex flex-col bg-slate-900/40 shadow-xl">
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="p-3 rounded-xl bg-amber-500/10">
+                        <ShieldAlert className="w-6 h-6 text-amber-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white uppercase tracking-tight">AI Assessment</h3>
+                    </div>
+                    <p className="text-xs text-amber-300/80 font-medium mb-4 leading-relaxed bg-amber-500/5 p-4 rounded-xl border border-amber-500/20">
+                      ⚠️ <strong>Disclaimer:</strong> {skinScanResult.disclaimer}
+                    </p>
+                    <div className="border-t border-white/5 pt-4">
+                      <p className="text-[10px] uppercase font-bold text-gray-400 mb-2">Visual Pattern Observed</p>
+                      <p className="text-gray-300 leading-relaxed text-sm italic">
+                        "{skinScanResult.pattern}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Conditions & Specialist recommendation */}
+                  <div className="lg:col-span-2 rounded-3xl glass-effect border border-white/10 p-8 flex flex-col bg-slate-900/40 shadow-xl">
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="p-3 rounded-xl bg-blue-500/10">
+                        <Activity className="w-6 h-6 text-blue-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white uppercase tracking-tight">Pattern Evaluation</h3>
+                    </div>
+                    
+                    <div className="space-y-4 flex-grow">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-gray-400 mb-2">Potential Matches (Non-Diagnostic)</p>
+                        <div className="flex flex-wrap gap-2">
+                          {skinScanResult.conditions.map((cond: string, i: number) => (
+                            <span key={i} className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-sm font-bold text-white">
+                              {cond}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20 mt-4 flex items-center justify-between flex-wrap gap-4 font-sans">
+                        <div className="flex-1">
+                          <p className="text-[10px] uppercase font-bold text-blue-400 mb-1">Suggested Medical Specialist</p>
+                          <h4 className="text-xl font-bold text-white flex items-center">
+                            <Bot className="w-5 h-5 mr-2 text-blue-400" />
+                            {skinScanResult.specialist}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">Recommended level of urgency: <span className="font-bold text-orange-400 uppercase">{skinScanResult.urgency}</span></p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigate('/emergency-locator', { state: { specialty: 'skin' } });
+                          }}
+                          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-bold hover:shadow-lg transition-all text-sm flex items-center space-x-2"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          <span>Find Doctors on Map</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skin Care Tips */}
+                <div className="rounded-[2.5rem] glass-effect border border-blue-500/20 p-10 flex flex-col bg-blue-600/5 shadow-2xl relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center">
+                        <ListChecks className="w-8 h-8 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">Dermal Care Guidance</h3>
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">General care tips while waiting to consult a doctor</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSkinScanResult(null);
+                        setSelectedSkinFile(null);
+                      }}
+                      className="px-8 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs border border-white/10 font-black uppercase tracking-widest transition-all"
+                    >
+                      Reset Module
+                    </button>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {skinScanResult.careTips.map((tip: string, i: number) => (
+                      <div key={i} className="flex flex-col space-y-4 p-6 rounded-[2rem] bg-slate-950/40 border border-white/5 hover:border-blue-500/40 transition-all group">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-black text-lg group-hover:bg-blue-500 group-hover:text-white transition-all">
+                          {i + 1}
+                        </div>
+                        <p className="text-white font-medium leading-relaxed">{tip}</p>
                       </div>
                     ))}
                   </div>

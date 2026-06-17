@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Phone, Search, Navigation, Building2, Ambulance, AlertCircle, Loader2, Crosshair, Heart, Eye, Activity, User, Clock, Stethoscope, Calendar, XCircle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '../services/api';
+import { useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -38,6 +39,7 @@ interface HealthcareProvider {
 }
 
 export default function EmergencyLocator() {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showResults, setShowResults] = useState(false);
@@ -55,8 +57,45 @@ export default function EmergencyLocator() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Default map center (e.g., somewhere central or just anywhere until geolocation fires)
+  // Default map center
   const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]);
+
+  // Auto-trigger geolocation + specialty filter if navigated from Dermal Scan
+  useEffect(() => {
+    const state = location.state as { specialty?: string } | null;
+    if (state?.specialty) {
+      setSelectedSpecialty(state.specialty);
+      setSearchQuery('Current Location');
+      // Auto-trigger GPS geolocation
+      if ('geolocation' in navigator) {
+        setLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            setMapCenter([lat, lng]);
+            try {
+              const response = await api.post('/emergency/nearby', {
+                latitude: lat,
+                longitude: lng,
+                radius: 15000
+              });
+              setProviders(response.data);
+              setShowResults(true);
+            } catch (err) {
+              setError('Failed to find nearby facilities. Please try again later.');
+            }
+            setLoading(false);
+          },
+          () => {
+            setError('Failed to get your location. Please allow location access and try again.');
+            setLoading(false);
+          }
+        );
+      }
+    }
+  }, [location.state]);
+
 
   const emergencyNumbers = [
     { service: 'Emergency Services', number: '911', description: 'Police, Fire, Ambulance' },
